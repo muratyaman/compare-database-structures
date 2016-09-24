@@ -5,6 +5,8 @@ from sshtunnel import SSHTunnelForwarder
 from sqlalchemy import *
 from sqlalchemy.engine import reflection
 
+# START definitions ============================================================
+
 class MyDb:
 
     def __init__ (self):
@@ -13,7 +15,7 @@ class MyDb:
         self.dbConnection = None
     # end constructor
 
-    def connect(config, dbRef):
+    def connect(self, config, dbRef):
         defaults  = config['defaults']
         hosts     = config['hosts']
         databases = config['databases']
@@ -24,7 +26,10 @@ class MyDb:
         dbUserRef  = db['user']
         dbName     = db['name']
         dbHostIp   = hosts[dbHostRef]
-        dbPort     = defaults['db_port']
+        dbPort     = defaults['db_port'] #if 'db_port' in defaults else 22
+        if 'port' in db:
+            dbPort = db['port']
+        # end if
         dbUser     = users[dbHostRef]
         dbUserName = dbUser['name']
         dbUserPass = dbUser['password']
@@ -33,7 +38,10 @@ class MyDb:
         sshHostRef  = tunnel['host']
         sshUserRef  = tunnel['user']
         sshHostIp   = hosts[sshHostRef]
-        sshPort     = defaults['ssh_port']
+        sshPort     = defaults['ssh_port'] #if 'ssh_port' in defaults else 3306
+        if 'port' in tunnel:
+            sshPort = tunnel['port']
+        # end if
         sshUser     = users[sshUserRef]
         sshUserName = sshUser['name']
         sshUserPass = sshUser['password']
@@ -71,11 +79,12 @@ class MyDb:
         print('Database version: querying ...')
         result = self.dbConnection.execute("SELECT version() AS version")
         for row in result:
-            print("Database version: ", row['version'])
-
+            version = row['version'] if 'version' in row else 'N/A'
+            print("Database version: ", version)
+        # end for
     # end function
 
-    def tables():
+    def tables(self):
         print('Database metadata: loading ...')
         metadata = MetaData()
         metadata.reflect(bind=self.dbEngine)
@@ -87,11 +96,16 @@ class MyDb:
             print('Table ', tbl)
             columns = inspector.get_columns(tbl)
             pprint.pprint(columns)
+        # end for
     # end function
 
-    def close():
+    def close(self):
         print('Database connection: closing ...')
-        self.dbConnection.close()
+        try:
+            self.dbConnection.close()
+        except Exception as err:
+            print('Database connection: error on close(): ', err)
+        # end try catch
         print('Database connection: closed.')
 
         print('SSH tunnel: stopping ...')
@@ -104,10 +118,11 @@ class MyDb:
 class MyApp:
 
     def __init__ (self, configFilePath):
-        self.config = self.read(configFilePath)
+        print('MyApp: new instance.')
+        self.read(configFilePath)
     # end constructor
 
-    def read(configFilePath):
+    def read(self, configFilePath):
         self.config = None
         print('Config file: opening ...')
         with open(configFilePath) as configFile:
@@ -115,14 +130,15 @@ class MyApp:
             print('Config json: loading ...')
             self.config = json.load(configFile)
             print('Config json: loaded.')
-
-        # pprint.pprint(config)
-        # return self.config
+            # pprint.pprint(config)
+        # end with
     # end function
 
-    def start():
+    def start(self):
         compareDbs = self.config['compare']
-        for sourceDbRef, targetDbRef in compareDbs.items()
+        for key in compareDbs:
+            sourceDbRef = key
+            targetDbRef = compareDbs[key]
             try:
                 sourceDb = MyDb()
                 sourceDb.connect(self.config, sourceDbRef)
@@ -143,14 +159,15 @@ class MyApp:
                 targetDb.close()
             # end try catch
         # end for loop
-
     # end function
 
-    def finish():
+    def finish(self):
         self.config = None
     # end function
 
 # end class MyApp
+
+# END definitions ==============================================================
 
 def main():
 
@@ -161,7 +178,6 @@ def main():
         myApp.finish()
     except Exception as err:
         print('App error: ', err)
-
     else: # finally
         print('The End!')
     # end try catch
