@@ -5,6 +5,10 @@ config.json file is for configuring the options. please check example.config.jso
 
 ## requirements
 
+### SQLite3 database
+
+`sudo apt-get install sqlite3`
+
 ### SSL library
 
 `sudo apt-get install libssl-dev`
