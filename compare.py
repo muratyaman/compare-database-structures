@@ -106,6 +106,30 @@ class MyDbLocal:
         
     # end function
     
+    def compare(self, sourceDbRef, targetDbRef):
+        print('Compare: ' + sourceDbRef + ' vs ' + targetDbRef)
+        print('db_ref, schema, table, column, type, target_column_type')
+        selectSql = '''
+        SELECT s.db_ref, s.schema_name, s.table_name, s.column_name, s.column_type, t.column_type as target_column_type
+        FROM (
+          SELECT s0.*
+          FROM my_tables s0
+          WHERE s0.db_ref = ?
+        ) s
+        LEFT JOIN (
+          SELECT t0.*
+          FROM my_tables t0
+          WHERE t0.db_ref = ?
+        ) t ON s.schema_name = t.schema_name AND s.table_name = t.table_name AND s.column_name = t.column_name
+        WHERE t.id IS NULL OR s.column_type <> t.column_type
+        ORDER BY 1, 2, 3, 4
+        '''
+        rows = self.dbConnection.execute(selectSql, (sourceDbRef, targetDbRef))
+        for row in rows:
+            print(row)
+        # end for loop
+    # end function
+    
     def close(self):
         logging.debug('Local database connection: closing ...')
         try:
@@ -312,30 +336,39 @@ class MyApp:
     # end function
     
     def compareDbStructure(self, sourceDbRef, targetDbRef):
-        print('todo: compareDbStructure')
+        self.dbLocal.compare(sourceDbRef, targetDbRef)
     # end function
     
+    # start running app
     def start(self):
         logging.debug('MyApp: starting ...')
         
         self.connectToLocalDb()
         
-        dbs = self.config['databases']
-        for dbRef in dbs:
-            self.loadDbStructure(dbRef)
-        # end for loop
+        # TODO: get command from user
+        command = 'compare'
         
-        compareDbs = self.config['compare']
-        for key in compareDbs:
-            sourceDbRef = key
-            targetDbRef = compareDbs[key]
-            logging.debug('MyApp: comparing: ' + sourceDbRef + ' with ' + targetDbRef)
-            self.compareDbStructure(sourceDbRef, targetDbRef)
-        # end for loop
+        if command == 'loadall':
+            dbs = self.config['databases']
+            for dbRef in dbs:
+                self.loadDbStructure(dbRef)
+            # end for loop
+        # end if
+        
+        if command == 'compare':
+            compareDbs = self.config['compare']
+            for key in compareDbs:
+                sourceDbRef = key
+                targetDbRef = compareDbs[key]
+                logging.debug('MyApp: comparing: ' + sourceDbRef + ' with ' + targetDbRef)
+                self.compareDbStructure(sourceDbRef, targetDbRef)
+            # end for loop
+        # end if
         
         self.dbLocal.close()
     # end function
 
+    # finish and tidy up
     def finish(self):
         self.config = None
         self.dbLocale = None
