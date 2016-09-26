@@ -63,7 +63,13 @@ config.json file is for configuring the options. please check example.config.jso
 
 ### create local database to store collected info
 
-`sqlite3 db.sqlite3 < db.sql`
+`sqlite3 db.sqlite3`
+
+On SQLite console:
+
+`.read db.sql`
+
+`.exit`
 
 ### edit configuration file
 
