@@ -15,8 +15,9 @@ config.json file is for configuring the options. please check example.config.jso
 
 ### Python 2.x * * *
 
-`sudo apt-get install python-dev
-sudo apt-get install python-pip`
+`sudo apt-get install python-dev`
+
+`sudo apt-get install python-pip`
 
 #### sshtunnel
 [https://pypi.python.org/pypi/sshtunnel](https://pypi.python.org/pypi/sshtunnel)
@@ -35,8 +36,9 @@ sudo apt-get install python-pip`
 
 ### Python 3.x * * *
 
-`sudo apt-get install python3-dev
-sudo apt-get install python3-pip`
+`sudo apt-get install python3-dev`
+
+`sudo apt-get install python3-pip`
 
 #### sshtunnel
 [https://pypi.python.org/pypi/sshtunnel](https://pypi.python.org/pypi/sshtunnel)
@@ -61,7 +63,9 @@ sudo apt-get install python3-pip`
 
 ### edit configuration file
 
-`cp example.config.json config.json; nano config.json`
+`cp example.config.json config.json`
+
+`nano config.json`
 
 ## usage
 
