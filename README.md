@@ -5,21 +5,52 @@ config.json file is for configuring the options. please check example.config.jso
 
 ## requirements
 
-### python pip
+### SSL library
+
+`sudo apt-get install libssl-dev`
+
+### FFI library
+
+`sudo apt-get install libffi-dev`
+
+### Python 2.x * * *
+
+`sudo apt-get install python-dev`
+
+`sudo apt-get install python-pip`
+
+#### sshtunnel
+[https://pypi.python.org/pypi/sshtunnel](https://pypi.python.org/pypi/sshtunnel)
+
+`sudo pip install sshtunnel`
+
+#### SQLAlchemy
+[http://www.sqlalchemy.org/](http://www.sqlalchemy.org/)
+
+`sudo pip install SQLAlchemy`
+
+#### MySQL connector
+[https://dev.mysql.com/doc/connector-python/en/connector-python-installation.html](https://dev.mysql.com/doc/connector-python/en/connector-python-installation.html)
+
+`sudo apt-get install python-mysql.connector`
+
+### Python 3.x * * *
+
+`sudo apt-get install python3-dev`
 
 `sudo apt-get install python3-pip`
 
-### sshtunnel
+#### sshtunnel
 [https://pypi.python.org/pypi/sshtunnel](https://pypi.python.org/pypi/sshtunnel)
 
 `sudo pip3 install sshtunnel`
 
-### SQLAlchemy
+#### SQLAlchemy
 [http://www.sqlalchemy.org/](http://www.sqlalchemy.org/)
 
 `sudo pip3 install SQLAlchemy`
 
-### MySQL connector
+#### MySQL connector
 [https://dev.mysql.com/doc/connector-python/en/connector-python-installation.html](https://dev.mysql.com/doc/connector-python/en/connector-python-installation.html)
 
 `sudo apt-get install python3-mysql.connector`
@@ -32,7 +63,9 @@ config.json file is for configuring the options. please check example.config.jso
 
 ### edit configuration file
 
-`cp example.config.json config.json; nano config.json`
+`cp example.config.json config.json`
+
+`nano config.json`
 
 ## usage
 
