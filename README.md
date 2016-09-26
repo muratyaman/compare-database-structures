@@ -5,13 +5,33 @@ config.json file is for configuring the options. please check example.config.jso
 
 ## requirements
 
-###sshtunnel
+### sshtunnel
 [https://pypi.python.org/pypi/sshtunnel](https://pypi.python.org/pypi/sshtunnel)
 
 `pip install sshtunnel`
 
-###SQLAlchemy
+### SQLAlchemy
 [http://www.sqlalchemy.org/](http://www.sqlalchemy.org/)
 
 `pip install SQLAlchemy`
+
+### MySQL connector
+[https://dev.mysql.com/doc/connector-python/en/connector-python-installation.html](https://dev.mysql.com/doc/connector-python/en/connector-python-installation.html)
+
+`apt-get install mysql-connector-python3`
+
+## installation
+
+### create local database to store collected info
+
+`sqlite3 db.sqlite3 < db.sql`
+
+### edit configuration file
+
+`cp example.config.json config.json; nano config.json`
+
+## usage
+
+`python3 compare.py`
+
 
