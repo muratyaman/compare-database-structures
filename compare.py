@@ -5,14 +5,13 @@ from sshtunnel import SSHTunnelForwarder
 from sqlalchemy import *
 from sqlalchemy.engine import reflection
 from sqlite3 import dbapi2 as sqlite
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-
-Base = declarative_base()
+#from sqlalchemy.ext.declarative import declarative_base
+#from sqlalchemy.orm import sessionmaker
 
 # START definitions ============================================================
 
 '''
+Base = declarative_base()
 class MyDbLocalTableColumnModel(Base):
     __table__ = 'my_tables'
     
@@ -68,7 +67,13 @@ class MyDbLocal:
         self.dbCursor     = self.dbConnection.cursor()
     # end function
     
-    def saveTableColumn(self, dbRef, schemaName, table, column):
+    def resetTablesOfDb(self, dbRef):
+        deleteSql = "DELETE FROM my_tables WHERE db_ref = '{}';".format(dbRef)
+        result = self.dbConnection.execute(deleteSql)
+        self.dbConnection.commit()
+    # end function
+    
+    def saveTableColumns(self, dbRef, schemaName, table):
         '''
         myTableCol = MyDbLocalTableColumnModel(
             db_ref=dbRef, schema_name=schemaName, table_name=table.name, column_name=column.name,
@@ -78,32 +83,21 @@ class MyDbLocal:
         self.session.commit()
         '''
         
+        insertSql = '''
+            INSERT INTO my_tables
+            (db_ref, schema_name, table_name, column_name, column_type, column_nullable)
+            VALUES (?, ?, ?, ?, ?, ?);
         '''
-        insertSql = ('INSERT INTO my_tables ' +
-            '(db_ref, schema_name, table_name, column_name, column_type, column_nullable) ' +
-            'VALUES (:db_ref, :schema_name, :table_name, :column_name, :column_type, :column_nullable)'
-        )
-        params = {
-            "db_ref"          : dbRef,
-            "schema_name"     : schemaName,
-            "table_name"      : table.name,
-            "column_name"     : column.name,
-            "column_type"     : str(column.type),
-            "column_nullable" : 1 if column.nullable else 0
-        }
-        result = self.dbCursor.execute(
-            insertSql,
-            params
-        )
-        '''
+        params = []
+        for column in table.columns:
+            logging.debug(
+                'DB: ' + dbRef + ' >> Table: ' + table.name + ' Column: ' + column.name +
+                ' Type: ' + str(column.type) + ' Nullable: ' + str(column.nullable)
+            )
+            row = (dbRef, schemaName, table.name, column.name, str(column.type), int(1 if column.nullable else 0))
+            params.append(row)
+        # end for
         
-        insertSql = ('INSERT INTO my_tables ' +
-            '(db_ref, schema_name, table_name, column_name, column_type, column_nullable) ' +
-            'VALUES (?, ?, ?, ?, ?, ?)'
-        )
-        params = [
-            (dbRef, schemaName, table.name, column.name, str(column.type), int(1 if column.nullable else 0)),
-        ]
         result = self.dbCursor.executemany(
             insertSql,
             params
@@ -207,6 +201,7 @@ class MyDb:
         logging.debug('DB: ' + self.dbRef + ' > Database connection: connecting ...')
         self.dbConnection = self.dbEngine.connect()
         logging.info('DB: ' + self.dbRef + ' > Database connection: connected.')
+        print('DB: ' + self.dbRef + ' > Database connection: connected.')
 
         logging.debug('DB: ' + self.dbRef + ' > Database version: querying ...')
         result = self.dbConnection.execute('SELECT version() AS version')
@@ -239,13 +234,7 @@ class MyDb:
     def table(self, myTable):
         logging.debug('DB: ' + self.dbRef + ' >> Table: ' + myTable.name + ' - Columns listing ...')
         #myTable = Table(myTable.name, self.metadata, autoload=True, autoload_with=self.dbEngine)
-        for myColumn in myTable.columns:
-            logging.debug(
-                'DB: ' + self.dbRef + ' >> Table: ' + myTable.name + ' Column: ' + myColumn.name +
-                ' Type: ' + str(myColumn.type) + ' Nullable: ' + str(myColumn.nullable)
-            )
-            self.dbLocal.saveTableColumn(self.dbRef, 'public', myTable, myColumn) # schema = 'public'
-        # end for
+        self.dbLocal.saveTableColumns(self.dbRef, 'public', myTable) # schema = 'public'
         logging.debug('DB: ' + self.dbRef + ' >> Table: ' + myTable.name + ' - Columns listed.')
     # end function
 
@@ -291,42 +280,57 @@ class MyApp:
         # end with
     # end function
 
+    def connectToLocalDb(self):
+        self.dbLocal = MyDbLocal()
+        logging.debug('MyApp: connecting to local db ...')
+        self.dbLocal.connect('./db.sqlite3');
+        logging.debug('MyApp: connected to local db.')
+    # end function
+    
+    def loadDbStructure(self, dbRef):
+        try:
+            logging.debug('MyApp: reset table info for ' + dbRef)
+            self.dbLocal.resetTablesOfDb(dbRef)
+            logging.debug('MyApp: reset table info for ' + dbRef + ' done')
+            
+            logging.debug('MyApp: loading: ' + dbRef)
+            db = MyDb(dbRef, self.dbLocal)
+            logging.debug('MyApp: loaded: ' + dbRef)
+            
+            logging.debug('MyApp: connecting: ' + dbRef)
+            db.connect(self.config)
+            logging.info('MyApp: connected: ' + dbRef)
+            db.tables()
+        except Exception as err:
+            print('Database: error: ', err)
+        else: # finally
+            logging.debug('MyApp: closing db: ' + dbRef)
+            db.close()
+        # end try catch
+        db = None
+    
+    # end function
+    
+    def compareDbStructure(self, sourceDbRef, targetDbRef):
+        print('todo: compareDbStructure')
+    # end function
+    
     def start(self):
         logging.debug('MyApp: starting ...')
         
-        self.dbLocal = MyDbLocal()
-        self.dbLocal.connect('./db.sqlite3');
+        self.connectToLocalDb()
+        
+        dbs = self.config['databases']
+        for dbRef in dbs:
+            self.loadDbStructure(dbRef)
+        # end for loop
         
         compareDbs = self.config['compare']
         for key in compareDbs:
             sourceDbRef = key
             targetDbRef = compareDbs[key]
             logging.debug('MyApp: comparing: ' + sourceDbRef + ' with ' + targetDbRef)
-            try:
-                logging.debug('MyApp: loading: ' + sourceDbRef)
-                sourceDb = MyDb(sourceDbRef, self.dbLocal)
-                logging.debug('MyApp: loaded: ' + sourceDbRef)
-                sourceDb.connect(self.config)
-                logging.debug('MyApp: connected: ' + sourceDbRef)
-                sourceTables = sourceDb.tables()
-            except Exception as err:
-                print('Source database: error: ', err)
-            else: # finally
-                logging.debug('MyApp: closing db: ' + sourceDbRef)
-                sourceDb.close()
-            # end try catch
-
-            try:
-                logging.debug('MyApp: loading: ' + targetDbRef)
-                targetDb = MyDb(targetDbRef, self.dbLocal)
-                targetDb.connect(self.config)
-                targetTables = targetDb.tables()
-            except Exception as err:
-                print('Target database: error: ', err)
-            else: # finally
-                logging.debug('MyApp: closing db: ' + targetDbRef)
-                targetDb.close()
-            # end try catch
+            self.compareDbStructure(sourceDbRef, targetDbRef)
         # end for loop
         
         self.dbLocal.close()
@@ -334,6 +338,7 @@ class MyApp:
 
     def finish(self):
         self.config = None
+        self.dbLocale = None
     # end function
 
 # end class MyApp
