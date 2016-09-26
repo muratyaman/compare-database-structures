@@ -18,7 +18,7 @@ config.json file is for configuring the options. please check example.config.jso
 ### MySQL connector
 [https://dev.mysql.com/doc/connector-python/en/connector-python-installation.html](https://dev.mysql.com/doc/connector-python/en/connector-python-installation.html)
 
-`apt-get install mysql-connector-python3`
+`apt-get install python3-mysql.connector`
 
 ## installation
 
