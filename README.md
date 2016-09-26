@@ -9,6 +9,10 @@ config.json file is for configuring the options. please check example.config.jso
 
 `sudo apt-get install libssl-dev`
 
+### FFI library
+
+`sudo apt-get install libffi-dev`
+
 ### Python 2.x * * *
 
 `sudo apt-get install python-dev`
