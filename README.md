@@ -5,19 +5,19 @@ config.json file is for configuring the options. please check example.config.jso
 
 ## requirements
 
-### pyton pip
+### python pip
 
 `sudo apt-get install python3-pip`
 
 ### sshtunnel
 [https://pypi.python.org/pypi/sshtunnel](https://pypi.python.org/pypi/sshtunnel)
 
-`sudo pip install sshtunnel`
+`sudo pip3 install sshtunnel`
 
 ### SQLAlchemy
 [http://www.sqlalchemy.org/](http://www.sqlalchemy.org/)
 
-`sudo pip install SQLAlchemy`
+`sudo pip3 install SQLAlchemy`
 
 ### MySQL connector
 [https://dev.mysql.com/doc/connector-python/en/connector-python-installation.html](https://dev.mysql.com/doc/connector-python/en/connector-python-installation.html)
