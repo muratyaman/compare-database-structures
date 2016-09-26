@@ -5,8 +5,13 @@ config.json file is for configuring the options. please check example.config.jso
 
 ## requirements
 
+### SSL library
+
+`sudo apt-get install libssl-dev`
+
 ### Python 2.x * * *
 
+`sudo apt-get install python-dev`
 `sudo apt-get install python-pip`
 
 #### sshtunnel
@@ -25,6 +30,8 @@ config.json file is for configuring the options. please check example.config.jso
 `sudo apt-get install python-mysql.connector`
 
 ### Python 3.x * * *
+
+`sudo apt-get install python3-dev`
 `sudo apt-get install python3-pip`
 
 #### sshtunnel
