@@ -1,50 +1,50 @@
 {
-  "defaults": {
-    "ssh_port": 22,
-    "db_port": 3306
-  },
-  "hosts": {
-    "$local": "127.0.0.1",
-    "$host0": "10.0.0.1",
-    "$host1": "10.0.1.1",
-    "$host2": "10.0.2.2",
-  },
-  "users": {
-    "$user0": {
-      "name": "user0",
-      "password": "pa55w0rd"
+    "defaults": {
+        "ssh_port": 22,
+        "db_port": 3306
     },
-    "$user1": {
-      "name": "user1",
-      "password": "pa55w0rd"
+    "hosts": {
+        "local": {"address": "127.0.0.1"},
+        "host0": {"address": "10.0.0.1"},
+        "host1": {"address": "10.0.1.1"},
+        "host2": {"address": "10.0.2.2"},
     },
-    "$user2": {
-      "name": "user2",
-      "password": "pa55w0rd"
-    }
-  },
-  "databases": {
-    "$db0": {
-        "host": "$local",
-        "user": "$user0",
-        "name": "example",
-        "tunnel": {
-          "host": "$host0",
-          "user": "$user0"
+    "users": {
+        "user0": {
+            "name": "user0",
+            "password": "pa55w0rd"
+        },
+        "user1": {
+            "name": "user1",
+            "password": "pa55w0rd"
+        },
+        "user2": {
+            "name": "user2",
+            "password": "pa55w0rd"
         }
     },
-    "$db1": {
-      "host": "$local",
-      "user": "$user1",
-      "name": "example",
-      "tunnel": {
-        "host": "$host1",
-        "user": "$user1"
-      }
+    "databases": {
+        "db0": {
+            "host": "local",
+            "user": "user0",
+            "name": "example",
+            "tunnel": {
+                "host": "host0",
+                "user": "user0"
+            }
+        },
+        "db1": {
+          "host": "local",
+          "user": "user1",
+          "name": "example",
+          "tunnel": {
+              "host": "host1",
+              "user": "user1"
+          }
+        }
+    },
+    "compare": {
+        "db0": "db1",
+        "db0": "db2"
     }
-  },
-  "compare": {
-    "$db0": "$db1",
-    "$db0": "$db2"
-  }
 }
