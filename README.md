@@ -7,6 +7,11 @@ config.json file is for configuring the options. please check example.config.jso
 
 ###sshtunnel
 [https://pypi.python.org/pypi/sshtunnel](https://pypi.python.org/pypi/sshtunnel)
+
 `pip install sshtunnel`
 
+###SQLAlchemy
+[http://www.sqlalchemy.org/](http://www.sqlalchemy.org/)
+
+`pip install SQLAlchemy`
 
