@@ -1,3 +1,5 @@
+import sys
+import argparse
 import logging
 import json
 import pprint
@@ -424,23 +426,21 @@ class MyApp:
     # end function
     
     # start running app
-    def start(self):
+    def start(self, command):
         logging.debug('MyApp: starting ...')
         
         self.connectToLocalDb()
         
-        # TODO: get command from user
-        command = 'loadall'
-        
-        if command == 'clearcache':
+        # get command from user
+        if command == 'clear-cache':
             self.cmdClearCache()
         # end if
         
-        if command == 'loadall':
+        if command == 'load-all':
             self.cmdLoadAll()
         # end if
         
-        if command == 'compareall':
+        if command == 'compare-all':
             self.cmdCompareAll()
         # end if
         
@@ -457,26 +457,34 @@ class MyApp:
 
 # END definitions ==============================================================
 
-def main():
+def main(args):
     try:
-        print('Running ...')
-        logging.basicConfig(filename='compare.log', level=logging.DEBUG)
-        configFilePath = './config.json'
-        logging.debug('App: loading...')
-        myApp = MyApp(configFilePath)
-        logging.debug('App: loaded.')
-        logging.debug('App: starting...')
-        myApp.start()
-        logging.debug('App: started.')
-        logging.debug('App: finishing...')
-        myApp.finish()
-        logging.debug('App: finished.')
+        command = args.command if args.command else ''
+        if command != '':
+            print('Running ...')
+            logging.basicConfig(filename='compare.log', level=logging.DEBUG)
+            configFilePath = './config.json'
+            logging.debug('App: loading...')
+            myApp = MyApp(configFilePath)
+            logging.debug('App: loaded.')
+            logging.debug('App: starting...')
+            myApp.start(command)
+            logging.debug('App: started.')
+            logging.debug('App: finishing...')
+            myApp.finish()
+            logging.debug('App: finished.')
+        # end if
     except Exception as err:
         print('App error: ', err)
     else: # finally
         print('The End!')
     # end try catch
+    sys.exit()
 # end function main
 
-main()
-print (exit)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Compare database structures.')
+    parser.add_argument('command', help='Command to execute', choices=['clear-cache', 'load-all', 'compare-all'])
+    args = parser.parse_args()
+    main(args)
+# end if
