@@ -79,6 +79,10 @@ On SQLite console:
 
 ## usage
 
-`python3 compare.py`
+`python3 compare.py -h`
 
+`python3 compare.py clear-cache`
 
+`python3 compare.py load-all`
+
+`python3 compare.py compare-all`
