@@ -10,29 +10,6 @@ from sqlite3 import dbapi2 as sqlite
 
 # START definitions ============================================================
 
-'''
-Base = declarative_base()
-class MyDbLocalTableColumnModel(Base):
-    __table__ = 'my_tables'
-    
-    id              = Column(Integer, primary_key=True)
-    db_ref          = Column(String)
-    schema_name     = Column(String)
-    table_name      = Column(String)
-    column_name     = Column(String)
-    column_type     = Column(String)
-    column_nullable = Column(Integer)
-    column_attrs    = Column(String)
-
-    def __repr__(self):
-        return "<MyDbLocalTableColumnModel (db_ref='%s', schema_name='%s', table_name='%s', column_name='%s')>" % (
-            self.db_ref, self.schema_name, self.table_name, self.column_name
-        )
-    # end function
-    
-# end class MyDbLocalTableColumnModel
-'''
-
 class MyDbLocal:
     
     def __init__ (self):
@@ -42,68 +19,137 @@ class MyDbLocal:
     # end constructor
     
     def connect(self, dbFile):
-        '''
-        dbType = 'sqlite+pysqlite'
-        #dbFile = './db.sqlite3'
-        dsn = '{}:///{}'.format(
-            dbType, dbFile
-        )
-
-        logging.debug('Local database engine: starting ...')
-        self.dbEngine = create_engine(dsn, module=sqlite)
-        logging.debug('Local database engine: started.')
-
-        logging.debug('Local database connection: connecting ...')
-        self.dbConnection = self.dbEngine.connect()
-        logging.info('Local database connection: connected.')
-        
-        logging.debug('Local database: new session ...')
-        self.session = sessionmaker()
-        self.session.configure(bind=self.dbEngine)
-        logging.debug('Local database: new session ready.')
-        '''
-        
         self.dbConnection = sqlite.connect(dbFile)
         self.dbCursor     = self.dbConnection.cursor()
     # end function
     
-    def resetTablesOfDb(self, dbRef):
-        deleteSql = "DELETE FROM my_tables WHERE db_ref = '{}';".format(dbRef)
-        result = self.dbConnection.execute(deleteSql)
+    
+    def resetAll(self):
+        logging.debug('resetAll()...')
+        self.dbConnection.execute('DELETE FROM my_tables;')
+        self.dbConnection.execute('DELETE FROM my_databases;')
+        self.dbConnection.execute('DELETE FROM my_hosts;')
         self.dbConnection.commit()
     # end function
     
-    def saveTableColumns(self, dbRef, schemaName, table):
+    def hostReset(self, hostRef):
+        logging.debug('hostReset({})...'.format(hostRef))
+        deleteSql = 'DELETE FROM my_hosts WHERE host_ref = ?;'
+        params = (hostRef,)
+        result = self.dbCursor.execute(deleteSql, params)
+        self.dbConnection.commit()
+    # end function
+    
+    def hostConnecting(self, hostRef):
+        logging.debug('hostConnecting({}) ...'.format(hostRef))
+        insertSql = '''
+            INSERT INTO my_hosts
+                   (host_ref)
+            VALUES (?);
         '''
-        myTableCol = MyDbLocalTableColumnModel(
-            db_ref=dbRef, schema_name=schemaName, table_name=table.name, column_name=column.name,
-            column_type=str(column.type), column_nullable=1 if column.nullable else 0
-        )
-        self.session.add(myTableCol)
-        self.session.commit()
+        params = (hostRef,)
+        result = self.dbCursor.execute(insertSql, params)
+        self.dbConnection.commit()
+    # end function
+    
+    def hostConnected(self, hostRef):
+        logging.debug('hostConnected({}) ...'.format(hostRef))
+        updateSql = '''
+            UPDATE my_hosts
+            SET last_connected = DATETIME('now')
+            WHERE host_ref = ?;
         '''
-        
+        params = (hostRef,)
+        result = self.dbCursor.execute(updateSql, params)
+        self.dbConnection.commit()
+    # end function
+    
+    def dbReset(self, dbRef):
+        logging.debug('dbReset({}) ...'.format(dbRef))
+        deleteSql = 'DELETE FROM my_databases WHERE db_ref = ?;'
+        params = (dbRef,)
+        result = self.dbCursor.execute(deleteSql, params)
+        self.dbConnection.commit()
+    # end function
+    
+    def dbConnecting(self, dbRef):
+        logging.debug('dbConnecting({}) ...'.format(dbRef))
+        insertSql = '''
+            INSERT INTO my_databases
+                   (db_ref, last_connected, success)
+            VALUES (?, NULL, 0);
+        '''
+        params = (dbRef,)
+        result = self.dbCursor.execute(insertSql, params)
+        self.dbConnection.commit()
+    # end function
+    
+    def dbConnected(self, dbRef):
+        logging.debug('dbConnected({}) ...'.format(dbRef))
+        insertSql = '''
+            UPDATE my_databases
+            SET last_connected = DATETIME('now')
+            WHERE db_ref = ?;
+        '''
+        params = (dbRef,)
+        result = self.dbCursor.execute(insertSql, params)
+        self.dbConnection.commit()
+    # end function
+    
+    def dbSuccess(self, dbRef):
+        logging.debug('dbSuccess({}) ...'.format(dbRef))
+        updateSql = '''
+            UPDATE my_databases
+            SET success = 1
+            WHERE db_ref = :db_ref;
+        '''
+        params = (dbRef,)
+        result = self.dbCursor.execute(updateSql, params)
+        self.dbConnection.commit()
+    # end function
+    
+    def dbIsCached(self, dbRef):
+        logging.debug('dbIsCached({}) ...'.format(dbRef))
+        isCached = 0
+        selectSql = '''
+            SELECT * FROM my_databases
+            WHERE (db_ref = :db_ref)
+              AND (success = 1)
+              AND (DATETIME('now', '-1 day') < last_connected);
+        '''
+        params = (dbRef,)
+        self.dbCursor.execute(selectSql, params)
+        row = self.dbCursor.fetchone()
+        if row:
+            isCached = 1
+        # end if
+        return isCached;
+    # end function
+    
+    def dbResetTables(self, dbRef):
+        logging.debug('dbResetTables({}) ...'.format(dbRef))
+        deleteSql = 'DELETE FROM my_tables WHERE db_ref = ?;'
+        params = (dbRef,)
+        result = self.dbCursor.execute(deleteSql, params)
+        self.dbConnection.commit()
+    # end function
+    
+    def dbSaveTableColumns(self, dbRef, schemaName, table):
+        logging.debug('dbSaveTableColumns({}) ...'.format(dbRef))
         insertSql = '''
             INSERT INTO my_tables
-            (db_ref, schema_name, table_name, column_name, column_type, column_nullable)
+                   (db_ref, schema_name, table_name, column_name, column_type, column_nullable)
             VALUES (?, ?, ?, ?, ?, ?);
         '''
         params = []
         for column in table.columns:
-            logging.debug(
-                'DB: ' + dbRef + ' >> Table: ' + table.name + ' Column: ' + column.name +
-                ' Type: ' + str(column.type) + ' Nullable: ' + str(column.nullable)
-            )
+            logging.debug('DB: ' + dbRef + ' >> Table: ' + table.name + ' Column: ' + column.name + ' Type: ' + str(column.type))
             row = (dbRef, schemaName, table.name, column.name, str(column.type), int(1 if column.nullable else 0))
             params.append(row)
         # end for
         
-        result = self.dbCursor.executemany(
-            insertSql,
-            params
-        )
+        result = self.dbCursor.executemany(insertSql, params)
         self.dbConnection.commit()
-        
     # end function
     
     def compare(self, sourceDbRef, targetDbRef):
@@ -140,6 +186,9 @@ class MyDbLocal:
             logging.warning('Local database connection: error on close(): ')
             print(err)
         # end try catch
+        self.dbEngine     = None
+        self.dbConnection = None
+        self.dbCursor     = None
     # end function
 # end class MyDbLocal
 
@@ -174,7 +223,7 @@ class MyDb:
         sshUserRef  = tunnel['user']
         sshHost     = hosts[sshHostRef]
         sshHostAdrs = sshHost['address']
-        sshPort     = defaults['ssh_port'] #if 'ssh_port' in defaults else 3306
+        sshPort     = defaults['ssh_port']
         if 'port' in sshHost:
             sshPort = sshHost['port']
         # end if
@@ -187,7 +236,7 @@ class MyDb:
         dbName     = db['name']
         dbHost     = hosts[dbHostRef]
         dbHostAdrs = dbHost['address']
-        dbPort     = defaults['db_port'] #if 'db_port' in defaults else 22
+        dbPort     = defaults['db_port']
         if 'port' in dbHost:
             dbPort = dbHost['port']
         # end if
@@ -195,7 +244,13 @@ class MyDb:
         dbUserName = dbUser['name']
         dbUserPass = dbUser['password']
 
-        logging.debug('DB: ' + self.dbRef + ' > connect: SSH connection instance ...')
+        self.dbLocal.hostReset(sshHostRef) # ** local cache **
+        self.dbLocal.dbReset(self.dbRef)   # ** local cache **
+        
+        self.dbLocal.hostConnecting(sshHostRef) # ** local cache **
+        self.dbLocal.dbConnecting(self.dbRef)   # ** local cache **
+        
+        logging.debug('DB: ' + self.dbRef + ' > SSH connection instance ...')
         # SSH connection
         self.sshServer = SSHTunnelForwarder(
             sshHostAdrs,
@@ -203,40 +258,46 @@ class MyDb:
             ssh_password = sshUserPass,
             remote_bind_address=(dbHostAdrs, dbPort)
         )
-
+        
         logging.debug('DB: ' + self.dbRef + ' > SSH tunnel: starting ...')
         self.sshServer.start()
-        logging.debug('DB: ' + self.dbRef + ' > SSH tunnel: started.')
-
-        logging.debug('DB: ' + self.dbRef + ' > SSH tunnel: ready port: ' + str(self.sshServer.local_bind_port))
-
+        logging.info('DB: ' + self.dbRef + ' > SSH tunnel: started - port: ' + str(self.sshServer.local_bind_port))
+        print('DB: ' + self.dbRef + ' > SSH tunnel: started - port: ' + str(self.sshServer.local_bind_port))
+        self.dbLocal.hostConnected(sshHostRef) # ** local cache **
+        
         # database connection
-        dbType = 'mysql+mysqlconnector'
+        dbType     = 'mysql+mysqlconnector'
         dbHostAdrs = '127.0.0.1'                # override db host
-        dbPort = self.sshServer.local_bind_port # override db port
-        dsn = '{}://{}:{}@{}:{}/{}'.format(
+        dbPort     = self.sshServer.local_bind_port # override db port
+        dsn        = '{}://{}:{}@{}:{}/{}'.format(
             dbType, dbUserName, dbUserPass, dbHostAdrs, dbPort, dbName
         )
 
         logging.debug('DB: ' + self.dbRef + ' > Database engine: starting ...')
         self.dbEngine = create_engine(dsn)
         logging.debug('DB: ' + self.dbRef + ' > Database engine: started.')
-
         logging.debug('DB: ' + self.dbRef + ' > Database connection: connecting ...')
         self.dbConnection = self.dbEngine.connect()
         logging.info('DB: ' + self.dbRef + ' > Database connection: connected.')
         print('DB: ' + self.dbRef + ' > Database connection: connected.')
-
+        self.dbLocal.dbConnected(self.dbRef) # ** local cache **
+        
+        '''
         logging.debug('DB: ' + self.dbRef + ' > Database version: querying ...')
         result = self.dbConnection.execute('SELECT version() AS version')
         for row in result:
             version = str(row['version']) if 'version' in row else 'N/A'
             logging.info('Database version: {}'.format(version))
         # end for
+        '''
     # end function
 
     # read tables
     def tables(self):
+        logging.debug('MyApp: reset table info for ' + self.dbRef)
+        self.dbLocal.dbResetTables(self.dbRef) # ** local cache **
+        logging.debug('MyApp: reset table info for ' + self.dbRef + ' done')
+        
         logging.debug('DB: ' + self.dbRef + ' > metadata: loading ...')
         self.metadata = MetaData()
         self.metadata.reflect(bind=self.dbEngine)
@@ -252,13 +313,14 @@ class MyDb:
         print(' done.', end='')
         print('')
         logging.debug('DB: ' + self.dbRef + ' > tables: listed.')
+        
+        self.dbLocal.dbSuccess(self.dbRef) # ** local cache **
     # end function
 
     # read table columns
     def table(self, myTable):
         logging.debug('DB: ' + self.dbRef + ' >> Table: ' + myTable.name + ' - Columns listing ...')
-        #myTable = Table(myTable.name, self.metadata, autoload=True, autoload_with=self.dbEngine)
-        self.dbLocal.saveTableColumns(self.dbRef, 'public', myTable) # schema = 'public'
+        self.dbLocal.dbSaveTableColumns(self.dbRef, 'public', myTable) # ** local cache **
         logging.debug('DB: ' + self.dbRef + ' >> Table: ' + myTable.name + ' - Columns listed.')
     # end function
 
@@ -313,10 +375,11 @@ class MyApp:
     
     def loadDbStructure(self, dbRef):
         try:
-            logging.debug('MyApp: reset table info for ' + dbRef)
-            self.dbLocal.resetTablesOfDb(dbRef)
-            logging.debug('MyApp: reset table info for ' + dbRef + ' done')
-            
+            dbIsCached = self.dbLocal.dbIsCached(dbRef)
+            if dbIsCached:
+                logging.debug('MyApp: DB: ' + dbRef + ' is cached already')
+                return False
+            # end if
             logging.debug('MyApp: loading: ' + dbRef)
             db = MyDb(dbRef, self.dbLocal)
             logging.debug('MyApp: loaded: ' + dbRef)
@@ -332,11 +395,32 @@ class MyApp:
             db.close()
         # end try catch
         db = None
-    
+        return True
     # end function
     
     def compareDbStructure(self, sourceDbRef, targetDbRef):
         self.dbLocal.compare(sourceDbRef, targetDbRef)
+    # end function
+    
+    def cmdClearCache(self):
+        self.dbLocal.resetAll()
+    # end function
+    
+    def cmdLoadAll(self):
+        dbs = self.config['databases']
+        for dbRef in dbs:
+            self.loadDbStructure(dbRef)
+        # end for loop
+    # end function
+    
+    def cmdCompareAll(self):
+        compareDbs = self.config['compare']
+        for key in compareDbs:
+            sourceDbRef = key
+            targetDbRef = compareDbs[key]
+            logging.debug('MyApp: comparing: ' + sourceDbRef + ' with ' + targetDbRef)
+            self.compareDbStructure(sourceDbRef, targetDbRef)
+        # end for loop
     # end function
     
     # start running app
@@ -346,23 +430,18 @@ class MyApp:
         self.connectToLocalDb()
         
         # TODO: get command from user
-        command = 'compare'
+        command = 'loadall'
         
-        if command == 'loadall':
-            dbs = self.config['databases']
-            for dbRef in dbs:
-                self.loadDbStructure(dbRef)
-            # end for loop
+        if command == 'clearcache':
+            self.cmdClearCache()
         # end if
         
-        if command == 'compare':
-            compareDbs = self.config['compare']
-            for key in compareDbs:
-                sourceDbRef = key
-                targetDbRef = compareDbs[key]
-                logging.debug('MyApp: comparing: ' + sourceDbRef + ' with ' + targetDbRef)
-                self.compareDbStructure(sourceDbRef, targetDbRef)
-            # end for loop
+        if command == 'loadall':
+            self.cmdLoadAll()
+        # end if
+        
+        if command == 'compareall':
+            self.cmdCompareAll()
         # end if
         
         self.dbLocal.close()
